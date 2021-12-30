@@ -1,0 +1,39 @@
+HELP.md
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**
+!**/src/test/**
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+.log
+
+### api项目 ###
+api/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+.mvn
+mvnw*
+
+
+### generated files ###
+bin/
+gen/
+
+### MAC ###
+.DS_Store
+
+### Other ###
+logs/
+log
+temp/
