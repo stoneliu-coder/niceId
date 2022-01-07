@@ -13,9 +13,9 @@ import static com.ll.niceId.core.config.BizConfig.*;
  * @create: 2021-12-28 21:30
  **/
 @Component
-public class LongIdGernerator {
+public class LongIdGen {
 
-    private Logger logger = LoggerFactory.getLogger(LongIdGernerator.class);
+    private Logger logger = LoggerFactory.getLogger(LongIdGen.class);
 
     /**
      * 记录上一次的时间戳

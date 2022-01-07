@@ -10,10 +10,10 @@ import org.springframework.stereotype.Component;
  * @create: 2021-12-29 15:42
  **/
 @Component
-public class StringIdGenerator {
+public class StringIdGen {
 
     @Autowired
-    private LongIdGernerator longIdGernerator;
+    private LongIdGen longIdGernerator;
 
     /**
      * 可用的字符
