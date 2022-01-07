@@ -14,7 +14,7 @@ target/
 .sts4-cache
 .log
 
-### api项目 ###
+### api项目忽略不上传 ###
 api/
 
 ### IntelliJ IDEA ###
