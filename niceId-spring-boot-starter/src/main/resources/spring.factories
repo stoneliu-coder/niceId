@@ -1,0 +1,1 @@
+# org.springframework.boot.autoconfigure.EnableAutoConfiguration= com.ll.niceId.springboot.starter.config.NiceIdAutoConfiguration

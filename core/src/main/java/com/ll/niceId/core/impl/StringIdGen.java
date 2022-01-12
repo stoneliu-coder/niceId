@@ -1,7 +1,9 @@
 package com.ll.niceId.core.impl;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+
+import java.util.Date;
 
 
 /**
@@ -10,10 +12,16 @@ import org.springframework.stereotype.Component;
  * @create: 2021-12-29 15:42
  **/
 @Component
+@RequiredArgsConstructor
 public class StringIdGen {
 
-    @Autowired
-    private LongIdGen longIdGernerator;
+    /**
+     * long类型id生成器
+     * <p>
+     *     字符串类型id必须依赖long类型先生成id
+     * </p>
+     */
+    private final LongIdGen longIdGernerator;
 
     /**
      * 可用的字符
@@ -27,12 +35,13 @@ public class StringIdGen {
     /**
      * 生成一个新的id
      *
-     * @param machineId 机器号
+     * @param machineId 机器号（须小于1024）
+     * @param idStartTime 时间部分的起始值
      * @return 返回新的字符型id
      */
-    public String newId(int machineId) {
+    public String newId(short machineId, Date idStartTime) {
         //获取10进制的id
-        long id = longIdGernerator.newId(machineId);
+        long id = longIdGernerator.newId(machineId, idStartTime);
 
         //将10进制id进行进制转换
         return tenToRadix(id);

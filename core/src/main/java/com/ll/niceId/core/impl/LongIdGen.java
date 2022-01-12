@@ -4,7 +4,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import static com.ll.niceId.core.config.BizConfig.*;
+import java.util.Date;
+
+import static com.ll.niceId.core.impl.AbstractIdGen.BizConfig.*;
 
 
 /**
@@ -13,7 +15,7 @@ import static com.ll.niceId.core.config.BizConfig.*;
  * @create: 2021-12-28 21:30
  **/
 @Component
-public class LongIdGen {
+public class LongIdGen extends AbstractIdGen {
 
     private Logger logger = LoggerFactory.getLogger(LongIdGen.class);
 
@@ -35,15 +37,16 @@ public class LongIdGen {
     /**
      * 获取新的id
      * @param machineId 机器号（须小于1024）
+     * @param idStartTime 时间部分的起始值
      * @return
      */
-    public long newId(int machineId) {
+    public long newId(short machineId, Date idStartTime) {
         if (machineId >= MAX_MACHINE_ID) {
             throw new RuntimeException("机器号超出最大限制1024");
         }
 
         //获取当前相对时间戳
-        long timestamp = getRelativeTimeStamp();
+        long timestamp = getRelativeTimeStamp(idStartTime.getTime());
 
         //获取随机号
         long randomNo = getSequenceNo(timestamp);
@@ -82,7 +85,7 @@ public class LongIdGen {
      * 采用相对时间戳可以减少时间戳的总长度
      * @return 获取最新的相对时间戳
      */
-    private synchronized long getRelativeTimeStamp() {
+    private synchronized long getRelativeTimeStamp(long startTimeStamps) {
         long now;
         do {
             now = System.currentTimeMillis();
@@ -98,6 +101,6 @@ public class LongIdGen {
             }
         } while (now <= lastTimeStamp);//防止时间回拨，等待时间追上上一次时间
         lastTimeStamp = now;
-        return now - START_TIMESTAMP;
+        return now - startTimeStamps;
     }
 }
