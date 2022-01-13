@@ -9,6 +9,8 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import static com.ll.niceId.core.config.Constants.*;
+
 /**
  * NiceIdGen配置参数
  * @author: Tomliu
@@ -18,15 +20,6 @@ import java.util.Date;
 @RequiredArgsConstructor
 public class NiceIdGenConfig {
 
-    /**
-     * 默认起始时间格式
-     */
-    public final static String DEFAULT_START_TIME_FORMAT = "yyyy-MM-dd";
-
-    /**
-     * id时间部分的默认起始时间
-     */
-    private final static String DEFAULT_START_TIME = "2021-01-01";
 
     /**
      * 机器编号
@@ -34,7 +27,7 @@ public class NiceIdGenConfig {
      *     机器编号需要保证在整体集群中唯一，否则可能造成生成的id重复
      * </p>
      */
-    private short machineId;
+    private short machineId = 1;
 
     /**
      * id时间部分的起始时间
@@ -57,7 +50,7 @@ public class NiceIdGenConfig {
      * 获取默认起始时间
      * @return 返回默认起始时间
      */
-    private Date getDefaultStartTime() {
+    public static Date getDefaultStartTime() {
         return getDateFromFomattedString(DEFAULT_START_TIME);
     }
 
@@ -66,7 +59,7 @@ public class NiceIdGenConfig {
      * @param dateFormattedString 指定格式的时间字符串，格式如 yyyy-MM-dd HH:mm:ss
      * @return 返回对应的时间类型
      */
-    private Date getDateFromFomattedString(String dateFormattedString){
+    private static Date getDateFromFomattedString(String dateFormattedString){
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(DEFAULT_START_TIME_FORMAT);
         Date defaultStartDate = null;
         try {

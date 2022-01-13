@@ -1,12 +1,12 @@
 package com.ll.niceId.core.impl;
 
+import com.google.common.base.Preconditions;
+import com.ll.niceId.core.config.NiceIdGenConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
-
-import static com.ll.niceId.core.impl.AbstractIdGen.BizConfig.*;
 
 
 /**
@@ -15,9 +15,29 @@ import static com.ll.niceId.core.impl.AbstractIdGen.BizConfig.*;
  * @create: 2021-12-28 21:30
  **/
 @Component
-class LongIdGen extends AbstractIdGen {
+class LongIdGenImpl {
 
-    private Logger logger = LoggerFactory.getLogger(LongIdGen.class);
+    private Logger logger = LoggerFactory.getLogger(LongIdGenImpl.class);
+
+    /**
+     * 随机值部分长度
+     */
+    private final static long RANDOM_PART_WIDTH = 7L;
+
+    /**
+     * 机器号部分长度（允许最大1024台机器）
+     */
+    private final static long MACHINE_ID_WIDTH = 10L;
+
+    /**
+     * 最大机器号
+     */
+    private final static int MAX_MACHINE_ID = 1024;
+
+    /**
+     * 最大回拨时间差
+     */
+    private final static long MAX_TIME_DIFF_MIL = 5 * 1000L;
 
     /**
      * 记录上一次的时间戳
@@ -35,18 +55,39 @@ class LongIdGen extends AbstractIdGen {
     private static short sequence = 0;
 
     /**
+     * 机器号
+     */
+    private static short machineId = 1;
+
+    /**
+     * 起始时间毫秒数
+     */
+    private static long startTimeTicks = NiceIdGenConfig.getDefaultStartTime().getTime();//设置默认起始时间
+
+    /**
+     * 设置当前的机器号
+     * @param machineId 机器号（1-1024）
+     */
+    public static void setMachineId(short machineId) {
+        Preconditions.checkArgument(machineId <= MAX_MACHINE_ID && machineId >0,"机器号不符合规范，必须在1-1024范围内");
+        LongIdGenImpl.machineId = machineId;
+    }
+
+    /**
+     * 设置id的起始时间
+     * @param idStartTime
+     */
+    public static void setIdStartTime(Date idStartTime) {
+        LongIdGenImpl.startTimeTicks = idStartTime.getTime();
+    }
+
+    /**
      * 获取新的id
-     * @param machineId 机器号（须小于1024）
-     * @param idStartTime 时间部分的起始值
      * @return
      */
-    public long newId(short machineId, Date idStartTime) {
-        if (machineId >= MAX_MACHINE_ID) {
-            throw new RuntimeException("机器号超出最大限制1024");
-        }
-
+    public long newId() {
         //获取当前相对时间戳
-        long timestamp = getRelativeTimeStamp(idStartTime.getTime());
+        long timestamp = getRelativeTimeStamp(startTimeTicks);
 
         //获取随机号
         long randomNo = getSequenceNo(timestamp);
