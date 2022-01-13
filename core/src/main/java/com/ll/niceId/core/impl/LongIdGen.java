@@ -72,10 +72,10 @@ public class LongIdGen extends AbstractIdGen {
             sequence = 0;
         }
         currentSequence = ++sequence;
+        lastSequenceTimeStamp = currentTimeStamp;
         if (currentSequence >= 128) {
             throw new RuntimeException("序号已用尽");
         }
-        lastSequenceTimeStamp = currentTimeStamp;
         logger.info(String.format("sequence=%d", currentSequence));
         return currentSequence;
     }
