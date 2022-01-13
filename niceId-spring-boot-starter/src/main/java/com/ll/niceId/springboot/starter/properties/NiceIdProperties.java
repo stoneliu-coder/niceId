@@ -10,7 +10,7 @@ import static com.ll.niceId.springboot.starter.properties.NiceIdProperties.PREFI
 @Component
 @ConfigurationProperties(prefix = PREFIX)
 public class NiceIdProperties {
-     static final String PREFIX = "com.ll.niceid";
+     static final String PREFIX = "niceid";
 
     /**
      * 机器编号
