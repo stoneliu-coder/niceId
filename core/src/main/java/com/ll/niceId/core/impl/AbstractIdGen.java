@@ -5,7 +5,7 @@ package com.ll.niceId.core.impl;
  * @author tomliu
  * @create: 2022-01-12 17:00
  */
-public abstract class AbstractIdGen {
+abstract class AbstractIdGen {
 
     /**
      * @description: 业务参数配置

@@ -2,7 +2,6 @@ package com.ll.niceId.core.config;
 
 
 import com.google.common.base.Strings;
-import com.sun.istack.internal.NotNull;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
@@ -22,12 +21,12 @@ public class NiceIdGenConfig {
     /**
      * 默认起始时间格式
      */
-    public final static String DEFAULT_START_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
+    public final static String DEFAULT_START_TIME_FORMAT = "yyyy-MM-dd";
 
     /**
      * id时间部分的默认起始时间
      */
-    private final static String DEFAULT_START_TIME = "2021-01-01 00:00:00";
+    private final static String DEFAULT_START_TIME = "2021-01-01";
 
     /**
      * 机器编号
@@ -42,19 +41,10 @@ public class NiceIdGenConfig {
      */
     private Date startTime = getDefaultStartTime();
 
-    /**
-     * 设置id时间部分的起始时间
-     * @param startTime
-     */
-    public void setStartTime(Date startTime) {
-        if (startTime != null)
-            this.startTime = startTime;
-        //startTime为null 时,自动使用默认值
-    }
 
     /**
      * 设置id时间部分的起始时间
-     * @param startTimeFomattedString 起始时间的字符串，格式如 yyyy-MM-dd HH:mm:ss
+     * @param startTimeFomattedString 起始时间的字符串，格式如 yyyy-MM-dd
      */
     public void setStartTime(String startTimeFomattedString) {
         if (!Strings.isNullOrEmpty(startTimeFomattedString)) {

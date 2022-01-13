@@ -15,7 +15,7 @@ import static com.ll.niceId.core.impl.AbstractIdGen.BizConfig.*;
  * @create: 2021-12-28 21:30
  **/
 @Component
-public class LongIdGen extends AbstractIdGen {
+class LongIdGen extends AbstractIdGen {
 
     private Logger logger = LoggerFactory.getLogger(LongIdGen.class);
 

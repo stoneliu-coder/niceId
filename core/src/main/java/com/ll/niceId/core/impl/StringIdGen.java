@@ -13,7 +13,7 @@ import java.util.Date;
  **/
 @Component
 @RequiredArgsConstructor
-public class StringIdGen {
+class StringIdGen {
 
     /**
      * long类型id生成器

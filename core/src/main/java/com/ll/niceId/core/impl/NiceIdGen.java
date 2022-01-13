@@ -1,14 +1,13 @@
-package com.ll.niceId.core;
+package com.ll.niceId.core.impl;
 
 import com.ll.niceId.core.config.NiceIdGenConfig;
-import com.ll.niceId.core.impl.LongIdGen;
-import com.ll.niceId.core.impl.StringIdGen;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-
+import java.util.UUID;
 
 /**
  * @description: com.ll.niceId.NiceId
@@ -16,15 +15,23 @@ import org.springframework.stereotype.Component;
  * @create: 2021-12-28 21:20
  **/
 @Component
-@RequiredArgsConstructor
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class NiceIdGen {
 
     private final Logger logger = LoggerFactory.getLogger(NiceIdGen.class);
 
     /**
+     * 生成器编号
+     * <p>
+     *     本编码保证唯一，唯一标识某一个实例，用于在存储中区分不同的实例
+     * </p>
+     */
+    private final static String GENERATOR_ID = UUID.randomUUID().toString();
+
+    /**
      * long 类型id生成器
      */
-    private final LongIdGen longIdGernerator;
+    private final LongIdGen longIdGenerator;
 
     /**
      * string 类型id生成器
@@ -42,7 +49,7 @@ public class NiceIdGen {
      * @return
      */
     public long newLongId() {
-        return longIdGernerator.newId(niceIdGenConfig.getMachineId(), niceIdGenConfig.getStartTime());
+        return longIdGenerator.newId(niceIdGenConfig.getMachineId(), niceIdGenConfig.getStartTime());
     }
 
     /**

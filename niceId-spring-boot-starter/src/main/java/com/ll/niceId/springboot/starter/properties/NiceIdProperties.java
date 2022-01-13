@@ -15,13 +15,13 @@ public class NiceIdProperties {
     /**
      * 机器编号
      * <p>
-     *     机器编号需要保证在整体集群中唯一，否则可能造成生成的id重复
+     *     机器编号需要保证在整体集群中唯一，否则可能造成生成的id重复；本配置仅当machineDiscoveryType为manual时有效。
      * </p>
      */
     private short machineId = 0;
 
     /**
-     * id时间部分的起始时间，默认值：2021-01-01零点
+     * id时间部分的起始时间，默认值：2021-01-01
      */
     private String startTime;
 

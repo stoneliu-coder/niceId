@@ -1,6 +1,6 @@
 package com.ll.niceId.springboot.starter.config;
 
-import com.ll.niceId.core.NiceIdGen;
+import com.ll.niceId.core.impl.NiceIdGen;
 import com.ll.niceId.core.config.NiceIdGenConfig;
 import com.ll.niceId.springboot.starter.properties.NiceIdProperties;
 import lombok.RequiredArgsConstructor;
@@ -29,5 +29,4 @@ public class NiceIdAutoConfiguration {
         niceIdGen.config(config);
         return niceIdGen;
     }
-
 }
