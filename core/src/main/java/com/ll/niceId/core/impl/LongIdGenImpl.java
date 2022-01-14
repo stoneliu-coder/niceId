@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.ll.niceId.core.config.NiceIdGenConfig;
 import com.ll.niceId.core.model.SequenceData;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -15,6 +16,7 @@ import java.util.Random;
  * @author: Tomliu
  * @create: 2021-12-28 21:30
  **/
+@Slf4j
 @Component
 class LongIdGenImpl {
 
@@ -65,6 +67,11 @@ class LongIdGenImpl {
     private static long startTimeMillis = NiceIdGenConfig.getDefaultStartTime().getTime();//设置默认起始时间
 
     /**
+     * 同步锁
+     */
+    private final static byte [] LOCKER = new byte[0];
+
+    /**
      * 随机值生成器
      */
     private final static Random RANDOM = new Random();
@@ -94,8 +101,12 @@ class LongIdGenImpl {
      * @return
      */
     public long newId() {
-        long currentTimeMillis = getRealCurrentTime();//获取当前时间（规避时钟回拨的情况）
-        SequenceData sequenceData = getSequenceNo(currentTimeMillis);//获取随机序号
+
+        SequenceData sequenceData;
+        synchronized (LOCKER) {
+            long currentTimeMillis = getRealCurrentTime();//获取当前时间（规避时钟回拨的情况）
+            sequenceData = getSequenceNo(currentTimeMillis);//获取随机序号
+        }
 
         long machineIdShift = SEQUENCE_PART_WIDTH;//机器号偏移量
         long timestampShift = SEQUENCE_PART_WIDTH + MACHINE_ID_WIDTH;
@@ -115,7 +126,7 @@ class LongIdGenImpl {
      * @return
      */
     @SneakyThrows
-    private synchronized SequenceData getSequenceNo(long currentTimeMillis) {
+    private SequenceData getSequenceNo(long currentTimeMillis) {
         long localCurrentTimeMills = currentTimeMillis;
 
         //序号的初始随机值；tips：这里理论上只要小于128就可以，但如果随机到接近128的数，将导致同一毫秒内可用的序号很少，会进一步增加延迟到下一毫秒的可能性。
@@ -125,11 +136,13 @@ class LongIdGenImpl {
         if (localCurrentTimeMills != lastTimeMillis) {//当前时间与上一次时间不相等时，说明已经进入了新的ms区别
             sequence = (short) RANDOM.nextInt(maxRandomNum);//新ms区别，直接取随机值
         } else {
+            log.debug("相同时间");
             if (++sequence >= MAX_SEQUENCE) {//当前仍然在上一次ms区间内，序号使用自增1的值。为防止序号溢出（最大长度RANDOM_PART_WIDTH），需要
                 //耗尽的情况下，等待到下一ms获取新的值
                 long now = System.currentTimeMillis();
                 if (now == localCurrentTimeMills) {
                     Thread.sleep(1);//延时1ms，进入下一ms区间
+                    log.debug("最大序号，相同时间，延时1ms");
                 }
                 localCurrentTimeMills = System.currentTimeMillis();
                 sequence = (short) RANDOM.nextInt(maxRandomNum);//新ms区别，直接取随机值
@@ -141,6 +154,7 @@ class LongIdGenImpl {
         SequenceData sequenceData = new SequenceData();
         sequenceData.setSequence(sequence);
         sequenceData.setCurrentSequenceTimeMillis(localCurrentTimeMills);
+        log.debug("sequence:{},time:{}", sequence, currentTimeMillis);
         return sequenceData;
     }
 
@@ -149,21 +163,23 @@ class LongIdGenImpl {
      *
      * @return
      */
-    private synchronized long getRealCurrentTime() {
+    private long getRealCurrentTime() {
         long currentTimeMillis;
-        do {
-            currentTimeMillis = System.currentTimeMillis();
-            long timeDiff = lastTimeMillis - currentTimeMillis;
-            if (timeDiff > MAX_TIME_DIFF_MIL) {
-                throw new RuntimeException("时间回拨过大，请稍后再试");
-            } else if (timeDiff > 0) {
+        currentTimeMillis = System.currentTimeMillis();
+        long timeDiff = lastTimeMillis - currentTimeMillis;
+        if (timeDiff > MAX_TIME_DIFF_MIL) {
+            throw new RuntimeException("时间回拨过大，请稍后再试");
+        } else if (timeDiff > 0) {
+            while (timeDiff > 0) {
                 try {
                     Thread.sleep(timeDiff);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
+                currentTimeMillis = System.currentTimeMillis();
+                timeDiff = lastTimeMillis - currentTimeMillis;
             }
-        } while (currentTimeMillis <= lastTimeMillis);//防止时间回拨，等待时间追上上一次时间
+        }
         return currentTimeMillis;
     }
 }
