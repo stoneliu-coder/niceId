@@ -4,8 +4,6 @@ import com.google.common.base.Preconditions;
 import com.ll.niceId.core.config.NiceIdGenConfig;
 import com.ll.niceId.core.model.SequenceData;
 import lombok.SneakyThrows;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -20,12 +18,15 @@ import java.util.Random;
 @Component
 class LongIdGenImpl {
 
-    private Logger logger = LoggerFactory.getLogger(LongIdGenImpl.class);
+    /**
+     * 序号部分长度
+     */
+    private final static long SEQUENCE_PART_WIDTH = 7L;
 
     /**
-     * 随机值部分长度
+     * 序号的最大值
      */
-    private final static long RANDOM_PART_WIDTH = 7L;
+    private final static long MAX_SEQUENCE = 1 << SEQUENCE_PART_WIDTH;
 
     /**
      * 机器号部分长度（允许最大1024台机器）
@@ -70,15 +71,17 @@ class LongIdGenImpl {
 
     /**
      * 设置当前的机器号
+     *
      * @param machineId 机器号（1-1024）
      */
     public static void setMachineId(short machineId) {
-        Preconditions.checkArgument(machineId <= MAX_MACHINE_ID && machineId >0,"机器号不符合规范，必须在1-1024范围内");
+        Preconditions.checkArgument(machineId <= MAX_MACHINE_ID && machineId > 0, "机器号不符合规范，必须在1-1024范围内");
         LongIdGenImpl.machineId = machineId;
     }
 
     /**
      * 设置id的起始时间
+     *
      * @param idStartTime
      */
     public static void setIdStartTime(Date idStartTime) {
@@ -87,17 +90,16 @@ class LongIdGenImpl {
 
     /**
      * 获取新的id
+     *
      * @return
      */
     public long newId() {
-        long currentTime = getRealCurrentTime();
+        long currentTimeMillis = getRealCurrentTime();//获取当前时间（规避时钟回拨的情况）
+        SequenceData sequenceData = getSequenceNo(currentTimeMillis);//获取随机序号
 
-        //获取随机号
-        SequenceData sequenceData = getSequenceNo(currentTime);
-
-        long machineIdShift = RANDOM_PART_WIDTH;//机器号偏移量
-        long timestampShift = RANDOM_PART_WIDTH + MACHINE_ID_WIDTH;
-        long relativeTimeMillis = sequenceData.getTimeMillis() - startTimeMillis; //计算当前时间与起始时间的差值，以减少时间部分的长度
+        long machineIdShift = SEQUENCE_PART_WIDTH;//机器号偏移量
+        long timestampShift = SEQUENCE_PART_WIDTH + MACHINE_ID_WIDTH;
+        long relativeTimeMillis = sequenceData.getCurrentSequenceTimeMillis() - startTimeMillis; //计算当前时间与起始时间的差值，以减少时间部分的长度
 
         long longMachineIdPart = machineId << machineIdShift; //获取机器部分
         long longTimePart = relativeTimeMillis << (machineIdShift + timestampShift);//获取时间部分
@@ -120,11 +122,10 @@ class LongIdGenImpl {
         int maxRandomNum = 100;
         short sequence = lastSeqenceNo;
 
-        if (localCurrentTimeMills != lastTimeMillis) {
-            //相较上次已过1ms，重置序号
+        if (localCurrentTimeMills != lastTimeMillis) {//当前时间与上一次时间不相等时，说明已经进入了新的ms区别
             sequence = (short) RANDOM.nextInt(maxRandomNum);//新ms区别，直接取随机值
         } else {
-            if (sequence++ >= 128) {
+            if (++sequence >= MAX_SEQUENCE) {//当前仍然在上一次ms区间内，序号使用自增1的值。为防止序号溢出（最大长度RANDOM_PART_WIDTH），需要
                 //耗尽的情况下，等待到下一ms获取新的值
                 long now = System.currentTimeMillis();
                 if (now == localCurrentTimeMills) {
@@ -135,16 +136,17 @@ class LongIdGenImpl {
             }
         }
 
-        lastTimeMillis = localCurrentTimeMills;
-        lastSeqenceNo = sequence;
+        lastTimeMillis = localCurrentTimeMills;//记录当前时间戳为上一次时间戳
+        lastSeqenceNo = sequence;//记录当前的序号为上一次序号
         SequenceData sequenceData = new SequenceData();
         sequenceData.setSequence(sequence);
-        sequenceData.setTimeMillis(localCurrentTimeMills);
+        sequenceData.setCurrentSequenceTimeMillis(localCurrentTimeMills);
         return sequenceData;
     }
 
     /**
      * 获取当前真实的时间戳(即排除回拨情况下的时间戳）
+     *
      * @return
      */
     private synchronized long getRealCurrentTime() {

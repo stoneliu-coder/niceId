@@ -16,6 +16,6 @@ public class SequenceData {
     /**
      * 当前sequence的时间戳
      */
-    private long timeMillis;
+    private long currentSequenceTimeMillis;
 
 }
