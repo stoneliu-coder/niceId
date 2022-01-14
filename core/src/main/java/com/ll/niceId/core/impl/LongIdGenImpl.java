@@ -2,11 +2,14 @@ package com.ll.niceId.core.impl;
 
 import com.google.common.base.Preconditions;
 import com.ll.niceId.core.config.NiceIdGenConfig;
+import com.ll.niceId.core.model.SequenceData;
+import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
+import java.util.Random;
 
 
 /**
@@ -42,17 +45,13 @@ class LongIdGenImpl {
     /**
      * 记录上一次的时间戳
      */
-    private static long lastTimeStamp = -1L;
+    private static long lastTimeMillis = -1L;
 
     /**
-     * 记录上一次序号时间戳
+     * 上一次序号
      */
-    private static long lastSequenceTimeStamp = -1L;
+    private static short lastSeqenceNo = 0;
 
-    /**
-     * 序号
-     */
-    private static short sequence = 0;
 
     /**
      * 机器号
@@ -62,7 +61,12 @@ class LongIdGenImpl {
     /**
      * 起始时间毫秒数
      */
-    private static long startTimeTicks = NiceIdGenConfig.getDefaultStartTime().getTime();//设置默认起始时间
+    private static long startTimeMillis = NiceIdGenConfig.getDefaultStartTime().getTime();//设置默认起始时间
+
+    /**
+     * 随机值生成器
+     */
+    private final static Random RANDOM = new Random();
 
     /**
      * 设置当前的机器号
@@ -78,7 +82,7 @@ class LongIdGenImpl {
      * @param idStartTime
      */
     public static void setIdStartTime(Date idStartTime) {
-        LongIdGenImpl.startTimeTicks = idStartTime.getTime();
+        LongIdGenImpl.startTimeMillis = idStartTime.getTime();
     }
 
     /**
@@ -86,51 +90,68 @@ class LongIdGenImpl {
      * @return
      */
     public long newId() {
-        //获取当前相对时间戳
-        long timestamp = getRelativeTimeStamp(startTimeTicks);
+        long currentTime = getRealCurrentTime();
 
         //获取随机号
-        long randomNo = getSequenceNo(timestamp);
+        SequenceData sequenceData = getSequenceNo(currentTime);
 
         long machineIdShift = RANDOM_PART_WIDTH;//机器号偏移量
         long timestampShift = RANDOM_PART_WIDTH + MACHINE_ID_WIDTH;
+        long relativeTimeMillis = sequenceData.getTimeMillis() - startTimeMillis; //计算当前时间与起始时间的差值，以减少时间部分的长度
 
-        long longMachineId = machineId << machineIdShift;
-        long longTimeStamp = timestamp << (machineIdShift + timestampShift);
-        return longTimeStamp | longMachineId | randomNo;
+        long longMachineIdPart = machineId << machineIdShift; //获取机器部分
+        long longTimePart = relativeTimeMillis << (machineIdShift + timestampShift);//获取时间部分
+        long longSequencePart = sequenceData.getSequence();//获取序列号部分
+
+        return longTimePart | longMachineIdPart | longSequencePart;
     }
 
     /**
      * 获取序号
      *
-     * @param currentTimeStamp 当前时间戳
+     * @param currentTimeMillis 当前时间戳
      * @return
      */
-    private synchronized short getSequenceNo(long currentTimeStamp) {
-        short currentSequence;
-        if (currentTimeStamp != lastSequenceTimeStamp) {
+    @SneakyThrows
+    private synchronized SequenceData getSequenceNo(long currentTimeMillis) {
+        long localCurrentTimeMills = currentTimeMillis;
+
+        //序号的初始随机值；tips：这里理论上只要小于128就可以，但如果随机到接近128的数，将导致同一毫秒内可用的序号很少，会进一步增加延迟到下一毫秒的可能性。
+        int maxRandomNum = 100;
+        short sequence = lastSeqenceNo;
+
+        if (localCurrentTimeMills != lastTimeMillis) {
             //相较上次已过1ms，重置序号
-            sequence = 0;
+            sequence = (short) RANDOM.nextInt(maxRandomNum);//新ms区别，直接取随机值
+        } else {
+            if (sequence++ >= 128) {
+                //耗尽的情况下，等待到下一ms获取新的值
+                long now = System.currentTimeMillis();
+                if (now == localCurrentTimeMills) {
+                    Thread.sleep(1);//延时1ms，进入下一ms区间
+                }
+                localCurrentTimeMills = System.currentTimeMillis();
+                sequence = (short) RANDOM.nextInt(maxRandomNum);//新ms区别，直接取随机值
+            }
         }
-        currentSequence = ++sequence;
-        lastSequenceTimeStamp = currentTimeStamp;
-        if (currentSequence >= 128) {
-            throw new RuntimeException("序号已用尽");
-        }
-        logger.info(String.format("sequence=%d", currentSequence));
-        return currentSequence;
+
+        lastTimeMillis = localCurrentTimeMills;
+        lastSeqenceNo = sequence;
+        SequenceData sequenceData = new SequenceData();
+        sequenceData.setSequence(sequence);
+        sequenceData.setTimeMillis(localCurrentTimeMills);
+        return sequenceData;
     }
 
     /**
-     * 获取相对时间戳
-     * 采用相对时间戳可以减少时间戳的总长度
-     * @return 获取最新的相对时间戳
+     * 获取当前真实的时间戳(即排除回拨情况下的时间戳）
+     * @return
      */
-    private synchronized long getRelativeTimeStamp(long startTimeStamps) {
-        long now;
+    private synchronized long getRealCurrentTime() {
+        long currentTimeMillis;
         do {
-            now = System.currentTimeMillis();
-            long timeDiff = lastTimeStamp - now;
+            currentTimeMillis = System.currentTimeMillis();
+            long timeDiff = lastTimeMillis - currentTimeMillis;
             if (timeDiff > MAX_TIME_DIFF_MIL) {
                 throw new RuntimeException("时间回拨过大，请稍后再试");
             } else if (timeDiff > 0) {
@@ -140,8 +161,7 @@ class LongIdGenImpl {
                     e.printStackTrace();
                 }
             }
-        } while (now <= lastTimeStamp);//防止时间回拨，等待时间追上上一次时间
-        lastTimeStamp = now;
-        return now - startTimeStamps;
+        } while (currentTimeMillis <= lastTimeMillis);//防止时间回拨，等待时间追上上一次时间
+        return currentTimeMillis;
     }
 }
